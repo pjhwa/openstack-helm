@@ -39,27 +39,32 @@
         ssh-keygen -t ed25519 -q -N "" -f {{ client_user_home_directory }}/.ssh/id_ed25519
       args:
         creates: "{{ client_user_home_directory }}/.ssh/id_ed25519.pub"
-      when: (inventory_hostname in (groups['primary'] | default([])))
+      when: inventory_hostname in (groups['primary'] | default([]))
 
     - name: Read ssh public key
       command: cat "{{ client_user_home_directory }}/.ssh/id_ed25519.pub"
-      register: ssh_public_key
-      when: (inventory_hostname in (groups['primary'] | default([])))
+      register: primary_ssh_key
+      when: inventory_hostname in (groups['primary'] | default([]))
 
 - name: Setup passwordless ssh from primary and cluster nodes
   become_user: "{{ cluster_ssh_user }}"
   block:
     - name: Set primary ssh public key
       set_fact:
-        client_ssh_public_key: "{{ (groups['primary'] | map('extract', hostvars, ['ssh_public_key', 'stdout']))[0] }}"
-      when: inventory_hostname in (groups['k8s_cluster'] | default([]))
+        client_ssh_public_key: "{{ hostvars[groups['primary'][0]]['primary_ssh_key']['stdout'] }}"
+      when:
+        - groups['primary'] | default([]) | length > 0
+        - inventory_hostname in (groups['k8s_cluster'] | default([]))
+        - hostvars[groups['primary'][0]]['primary_ssh_key']['stdout'] is defined
 
     - name: Put keys to .ssh/authorized_keys
       lineinfile:
         path: "{{ cluster_user_home_directory }}/.ssh/authorized_keys"
         state: present
         line: "{{ client_ssh_public_key }}"
-      when: inventory_hostname in (groups['k8s_cluster'] | default([]))
+      when:
+        - inventory_hostname in (groups['k8s_cluster'] | default([]))
+        - client_ssh_public_key is defined
 
     - name: Disable strict host key checking
       template:
@@ -68,5 +73,4 @@
         owner: "{{ client_ssh_user }}"
         mode: 0644
         backup: true
-      when: (inventory_hostname in (groups['primary'] | default([])))
-...
+      when: inventory_hostname in (groups['primary'] | default([]))
