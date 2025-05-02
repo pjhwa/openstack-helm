@@ -14,10 +14,10 @@
 - name: Install Kubectl
   apt:
     state: present
-    update_cache: true
+    update_cache: yes
     allow_downgrade: true
     pkg:
-      - "kubectl={{ kube_version }}"
+      - "kubectl={{ kube_package_version }}"
 
 - name: Set user home directory
   set_fact:
@@ -57,10 +57,11 @@
       become_user: "{{ kubectl.user }}"
       shell: |
         helm plugin install {{ osh_plugin_repo }}
+      ignore_errors: yes
 
     # This is to improve build time
     - name: Remove stable Helm repo
       become_user: "{{ kubectl.user }}"
       command: helm repo remove stable
-      ignore_errors: true
+      ignore_errors: yes
 ...
