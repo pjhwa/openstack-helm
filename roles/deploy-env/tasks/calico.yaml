@@ -28,6 +28,8 @@
 
     - name: Deploy Calico
       command: kubectl apply -f /tmp/calico.yaml
+      become: true
+      become_user: root
 
     - name: Sleep before trying to check Calico pods
       pause:
@@ -35,6 +37,8 @@
 
     - name: Wait for Calico pods ready
       command: kubectl -n kube-system wait --timeout=20s --for=condition=Ready pods -l k8s-app=calico-node
+      environment:
+        KUBECONFIG: "/home/{{ ansible_user }}/.kube/config"
       register: calico_pods_wait
       until: calico_pods_wait is succeeded
       retries: 10
@@ -46,9 +50,13 @@
 
     - name: Patch Calico
       command: kubectl -n kube-system patch daemonset calico-node --patch-file /tmp/calico_patch.yaml
+      become: true
+      become_user: root
 
     - name: Wait for Calico pods ready (after patch)
       command: kubectl -n kube-system wait --timeout=20s --for=condition=Ready pods -l k8s-app=calico-node
+      environment:
+        KUBECONFIG: "/home/{{ ansible_user }}/.kube/config"
       register: calico_pods_wait
       until: calico_pods_wait is succeeded
       retries: 10
