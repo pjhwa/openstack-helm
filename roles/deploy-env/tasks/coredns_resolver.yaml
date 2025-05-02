@@ -13,6 +13,8 @@
 ---
 - name: Enable recursive queries for coredns
   become: false
+  environment:
+    KUBECONFIG: "/home/{{ ansible_user }}/.kube/config"
   shell: |
     tee > /tmp/coredns_configmap.yaml <<EOF
     apiVersion: v1
