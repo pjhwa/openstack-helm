@@ -19,38 +19,38 @@
     - overlay
     - br_netfilter
 
-- name: Configure sysctl
+- name: Configure sysctl for IPv4
   sysctl:
     name: "{{ item }}"
     value: "1"
     state: present
   loop:
-    - net.ipv6.conf.default.disable_ipv6
-    - net.ipv6.conf.all.disable_ipv6
-    - net.ipv6.conf.lo.disable_ipv6
     - net.bridge.bridge-nf-call-iptables
-    - net.bridge.bridge-nf-call-ip6tables
     - net.ipv4.ip_forward
   ignore_errors: true
 
-# This is necessary when we run dnsmasq.
-# Otherwise, we get the error:
-# failed to create inotify: Too many open files
-- name: Configure number of inotify instances
+- name: Configure additional sysctl settings
   sysctl:
-    name: "fs.inotify.max_user_instances"
-    value: "256"
-    state: present
-  ignore_errors: true
-
-- name: Configure number of inotify instances
-  sysctl:
-    name: "{{ item }}"
-    value: "0"
+    name: "{{ item.name }}"
+    value: "{{ item.value }}"
     state: present
   loop:
-    - net.ipv4.conf.all.rp_filter
-    - net.ipv4.conf.default.rp_filter
+    - { name: "fs.inotify.max_user_instances", value: "256" }
+    - { name: "net.ipv4.conf.all.rp_filter", value: "0" }
+    - { name: "net.ipv4.conf.default.rp_filter", value: "0" }
+  ignore_errors: true
+
+- name: Configure sysctl for IPv6 if enabled
+  sysctl:
+    name: "{{ item }}"
+    value: "1"
+    state: present
+  loop:
+    - net.bridge.bridge-nf-call-ip6tables
+    - net.ipv6.conf.default.disable_ipv6
+    - net.ipv6.conf.all.disable_ipv6
+    - net.ipv6.conf.lo.disable_ipv6
+  when: ansible_all_ipv6_addresses | length > 0
   ignore_errors: true
 
 - name: Remove swapfile from /etc/fstab
@@ -66,15 +66,19 @@
   command: swapoff -a
   when: ansible_swaptotal_mb > 0
 
+- name: Debug kube_package_version
+  debug:
+    var: kube_package_version
+
 - name: Install Kubernetes binaries
   apt:
     state: present
-    update_cache: true
+    update_cache: yes
     allow_downgrade: true
     pkg:
-      - "kubelet={{ kube_version }}"
-      - "kubeadm={{ kube_version }}"
-      - "kubectl={{ kube_version }}"
+      - "kubelet={{ kube_package_version }}"
+      - "kubeadm={{ kube_package_version }}"
+      - "kubectl={{ kube_package_version }}"
 
 - name: Restart kubelet
   service:
@@ -99,10 +103,15 @@
     state: stopped
   ignore_errors: true
 
-- name: Disable unbound
-  service:
-    name: unbound
-    enabled: false
-    state: stopped
+- name: Check if unbound service is active
+  command: systemctl is-active unbound
+  register: unbound_status
   ignore_errors: true
+
+- name: Disable unbound
+  systemd:
+    name: unbound
+    enabled: no
+    state: stopped
+  when: unbound_status.rc == 0
 ...
