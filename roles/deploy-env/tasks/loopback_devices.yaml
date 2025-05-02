@@ -18,7 +18,12 @@
 
 - name: Create loop device
   shell: |
-    mknod {{ loopback_device }} b $(grep loop /proc/devices | cut -c3) {{ loopback_device | regex_search('[0-9]+') }}
+    if [ ! -e /dev/loop100 ]; then
+      mknod /dev/loop100 b $(grep loop /proc/devices | cut -c3) 100
+    fi
+  args:
+    executable: /bin/bash
+  when: inventory_hostname in (groups['k8s_cluster'] | default([]))
 
 - name: Create loop-setup systemd unit
   template:
