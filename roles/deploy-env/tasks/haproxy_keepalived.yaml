@@ -1,0 +1,39 @@
+---
+- name: Ensure Keepalived is running
+  service:
+    name: keepalived
+    state: started
+    enabled: yes
+
+- name: Verify VIP is assigned on master (k1)
+  shell: ip addr show | grep "{{ vip }}"
+  register: vip_check
+  failed_when: vip_check.rc != 0
+  retries: 5
+  delay: 10
+  until: vip_check.rc == 0
+  when: inventory_hostname == groups['k8s_control_plane'][0]  # k1에서만 확인
+
+- name: Debug VIP assignment
+  debug:
+    var: vip_check.stdout
+  when: vip_check.stdout is defined
+
+- name: Ensure HAProxy is running on master (k1)
+  service:
+    name: haproxy
+    state: started
+    enabled: yes
+  when: inventory_hostname == groups['k8s_control_plane'][0]  # k1에서만 실행
+
+- name: Check if port 6443 is listening on master (k1)
+  command: netstat -tuln | grep 6443
+  register: port_check
+  failed_when: port_check.rc != 0
+  ignore_errors: yes
+  when: inventory_hostname == groups['k8s_control_plane'][0]  # k1에서만 확인
+
+- name: Debug port 6443 status
+  debug:
+    var: port_check.stdout
+  when: port_check.stdout is defined
