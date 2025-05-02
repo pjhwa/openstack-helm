@@ -22,6 +22,8 @@
 
     - name: Install MetalLB
       become_user: "{{ kubectl.user }}"
+      environment:
+        KUBECONFIG: "/home/{{ kubectl.user }}/.kube/config"
       shell: |
         helm upgrade --install metallb metallb/metallb \
           --version {{ metallb_version }} \
@@ -34,8 +36,12 @@
 
     - name: Wait for MetalLB pods ready
       command: kubectl -n metallb-system wait --timeout=240s --for=condition=Ready pods -l 'app.kubernetes.io/name=metallb'
+      environment:
+        KUBECONFIG: "/home/{{ kubectl.user }}/.kube/config"
 
     - name: Create MetalLB address pool
+      environment:
+        KUBECONFIG: "/home/{{ kubectl.user }}/.kube/config"
       shell: |
         tee > /tmp/metallb_ipaddresspool.yaml <<EOF
         ---
