@@ -19,6 +19,7 @@
   template:
     src: files/hosts
     dest: /etc/hosts
+  when: inventory_hostname in groups['all']
 
 - name: Loop devices
   include_tasks:
@@ -29,6 +30,11 @@
   include_tasks:
     file: containerd.yaml
 
+- name: Include HAProxy and Keepalived tasks
+  include_tasks:
+    file: haproxy_keepalived.yaml
+  when: inventory_hostname in (groups['k8s_control_plane'] | default([]))
+
 - name: Include K8s common tasks
   include_tasks:
     file: k8s_common.yaml
@@ -38,10 +44,6 @@
   include_tasks:
     file: k8s_control_plane.yaml
   when: inventory_hostname in (groups['k8s_control_plane'] | default([]))
-
-- name: Join workload nodes to cluster
-  command: "{{ (groups['k8s_control_plane'] | map('extract', hostvars, ['join_command', 'stdout_lines', 0]))[0] }}"
-  when: inventory_hostname in (groups['k8s_nodes'] | default([]))
 
 - name: Include K8s client tasks
   include_tasks:
