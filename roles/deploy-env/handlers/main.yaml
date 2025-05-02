@@ -12,10 +12,22 @@
 
 ---
 - name: Systemd reload
-  shell: systemctl daemon-reload
+  systemd:
+    daemon_reload: yes
 
 - name: Restart loop-setup
   service:
     name: loop-setup
     state: restarted
-...
+
+- name: Restart Keepalived
+  service:
+    name: keepalived
+    state: restarted
+
+- name: Restart HAProxy
+  service:
+    name: haproxy
+    state: restarted
+    no_block: yes
+  ignore_errors: yes
