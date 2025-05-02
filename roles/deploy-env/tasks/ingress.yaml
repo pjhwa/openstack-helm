@@ -13,6 +13,8 @@
 ---
 - name: Add ingress-nginx helm repo
   become_user: "{{ kubectl.user }}"
+  environment:
+    KUBECONFIG: "/home/{{ kubectl.user }}/.kube/config"
   shell: |
     helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx
 
@@ -36,6 +38,8 @@
 
 - name: Deploy ingress in openstack namespace
   become_user: "{{ kubectl.user }}"
+  environment:
+    KUBECONFIG: "/home/{{ kubectl.user }}/.kube/config"
   when: ingress_openstack_setup
   shell: |
     helm upgrade --install --create-namespace ingress-nginx-openstack ingress-nginx/ingress-nginx \
@@ -52,6 +56,8 @@
 
 - name: Deploy ingress in ceph namespace
   become_user: "{{ kubectl.user }}"
+  environment:
+    KUBECONFIG: "/home/{{ kubectl.user }}/.kube/config"
   when: ingress_ceph_setup
   shell: |
     helm upgrade --install --create-namespace ingress-nginx-ceph ingress-nginx/ingress-nginx \
@@ -68,6 +74,8 @@
 
 - name: Deploy ingress in osh_infra namespace
   become_user: "{{ kubectl.user }}"
+  environment:
+    KUBECONFIG: "/home/{{ kubectl.user }}/.kube/config"
   when: ingress_osh_infra_setup
   shell: |
     helm upgrade --install --create-namespace ingress-nginx-osh-infra ingress-nginx/ingress-nginx \
