@@ -12,6 +12,8 @@
 
 ---
 - name: Create openstack ingress service
+  environment:
+    KUBECONFIG: "/home/{{ kubectl.user }}/.kube/config"
   become: false
   shell: |
     tee > /tmp/openstack_endpoint_service.yaml <<EOF
