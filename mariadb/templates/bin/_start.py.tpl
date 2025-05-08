@@ -599,6 +599,13 @@ def update_grastate_configmap():
 def update_grastate_on_restart():
     """Update the grastate.dat on node restart."""
     logger.info("Updating grastate info for node")
+    mysql_data_dir = '/var/lib/mysql'
+    bootstrap_test_dir = "{0}/mysql".format(mysql_data_dir)
+
+    if not os.path.isdir(bootstrap_test_dir):
+        logger.info("Database not initialized, performing bootstrap")
+        mysqld_bootstrap()
+
     if os.path.exists('/var/lib/mysql/grastate.dat'):
         if get_grastate_val(key='seqno') == '-1':
             logger.info(
