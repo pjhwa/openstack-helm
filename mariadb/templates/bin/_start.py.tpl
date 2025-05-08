@@ -562,14 +562,19 @@ def set_grastate_val(key, value):
     key -- the key to set the value of
     value -- the value to set the key to
     """
+    file_path = "/var/lib/mysql/grastate.dat"
+    if not os.path.exists(file_path):
+        logger.info("grastate.dat does not exist, creating it")
+        with open(file_path, "w") as f:
+            f.write("version: 1\nuuid: 00000000-0000-0000-0000-000000000000\nseqno: -1\nsafe_to_bootstrap: 1\n")
     logger.debug("Updating grastate.dat key={0} value={1}".format(key, value))
-    with open("/var/lib/mysql/grastate.dat", "r") as sources:
+    with open(file_path, "r") as sources:
         lines = sources.readlines()
         for line_num, line_content in enumerate(lines):
             if line_content.startswith("{0}:".format(key)):
                 line_content = "{0}: {1}\n".format(key, value)
             lines[line_num] = line_content
-    with open("/var/lib/mysql/grastate.dat", "w") as sources:
+    with open(file_path, "w") as sources:
         for line in lines:
             sources.write(line)
 
